@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Office Attendance Tracker</title>
+
+<style>
+:root{
+--office:#4caf50;
+--holiday:#ffd54f;
+--noshow:#e53935;
+--bg:#f4f6f8;
+--card:#ffffff;
+--primary:#1976d2;
+--text:#222;
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:system-ui,-apple-system,sans-serif;
+}
+
+body{
+background:var(--bg);
+color:var(--text);
+height:100vh;
+overflow:hidden;
+}
+
+.container{
+height:100vh;
+display:flex;
+flex-direction:column;
+}
+
+.calendar-area{
+flex:1;
+padding:12px;
+overflow:auto;
+}
+
+.summary{
+background:white;
+padding:12px;
+border-top:1px solid #ddd;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+}
+
+.nav-btn{
+border:none;
+background:var(--primary);
+color:white;
+padding:10px 14px;
+border-radius:10px;
+font-size:16px;
+}
+
+.month-title{
+font-size:20px;
+font-weight:700;
+}
+
+.weekdays{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:4px;
+margin-bottom:5px;
+font-weight:600;
+font-size:13px;
+text-align:center;
+}
+
+.calendar{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:4px;
+}
+
+.day{
+background:white;
+border-radius:12px;
+min-height:54px;
+display:flex;
+align-items:center;
+justify-content:center;
+position:relative;
+border:1px solid #e5e5e5;
+cursor:pointer;
+font-size:14px;
+}
+
+.empty{
+background:transparent;
+border:none;
+}
+
+.today{
+outline:3px solid var(--primary);
+}
+
+.office{
+background:var(--office);
+color:white;
+}
+
+.home{
+background:white;
+}
+
+.weekend{
+background:var(--holiday);
+}
+
+.holiday{
+background:var(--holiday);
+}
+
+.leave{
+background:
+repeating-linear-gradient(
+-45deg,
+#ffd54f,
+#ffd54f 8px,
+#c7a52d 8px,
+#c7a52d 12px
+);
+}
+
+.noShowHome{
+background:var(--noshow);
+color:white;
+}
+
+.noShowOffice{
+background:var(--office);
+color:white;
+}
+
+.noShowOffice::after{
+content:"";
+position:absolute;
+inset:0;
+border-radius:12px;
+background:
+repeating-linear-gradient(
+-45deg,
+transparent,
+transparent 6px,
+rgba(255,0,0,.9) 6px,
+rgba(255,0,0,.9) 10px
+);
+}
+
+.legend{
+display:flex;
+flex-wrap:wrap;
+gap:8px;
+margin-bottom:10px;
+font-size:12px;
+}
+
+.legend-item{
+display:flex;
+align-items:center;
+gap:4px;
+}
+
+.dot{
+width:14px;
+height:14px;
+border-radius:4px;
+}
+
+.stats{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:8px;
+margin-top:10px;
+}
+
+.card{
+background:#f7f9fb;
+padding:10px;
+border-radius:10px;
+text-align:center;
+}
+
+.card b{
+display:block;
+font-size:18px;
+margin-top:3px;
+}
+
+.progress-wrap{
+margin-top:10px;
+}
+
+.progress{
+height:16px;
+background:#ddd;
+border-radius:20px;
+overflow:hidden;
+}
+
+.progress-bar{
+height:100%;
+background:var(--office);
+width:0%;
+transition:.3s;
+}
+
+.progress-text{
+margin-top:5px;
+font-size:13px;
+font-weight:600;
+}
+
+.sheet{
+position:fixed;
+left:0;
+right:0;
+bottom:-100%;
+background:white;
+border-radius:20px 20px 0 0;
+padding:15px;
+transition:.3s;
+box-shadow:0 -4px 15px rgba(0,0,0,.2);
+z-index:10;
+}
+
+.sheet.show{
+bottom:0;
+}
+
+.sheet-title{
+font-weight:700;
+margin-bottom:10px;
+text-align:center;
+}
+
+.action{
+width:100%;
+padding:12px;
+margin:5px 0;
+border:none;
+border-radius:10px;
+font-size:15px;
+}
+
+.office-btn{background:#4caf50;color:white;}
+.home-btn{background:#2196f3;color:white;}
+.holiday-btn{background:#ffd54f;}
+.leave-btn{background:#ffca28;}
+.noshow-btn{background:#e53935;color:white;}
+.reset-btn{background:#666;color:white;}
+
+.backdrop{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.4);
+display:none;
+z-index:5;
+}
+
+.backdrop.show{
+display:block;
+}
+
+@media(min-width:768px){
+
+.container{
+flex-direction:row;
+}
+
+.calendar-area{
+width:70%;
+}
+
+.summary{
+width:30%;
+border-left:1px solid #ddd;
+border-top:none;
+overflow:auto;
+}
+
+.day{
+min-height:70px;
+font-size:16px;
+}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="calendar-area">
+
+<div class="header">
+<button class="nav-btn" id="prev">◀</button>
+<div class="month-title" id="monthTitle"></div>
+<button class="nav-btn" id="next">▶</button>
+</div>
+
+<div class="weekdays">
+<div>Sun</div>
+<div>Mon</div>
+<div>Tue</div>
+<div>Wed</div>
+<div>Thu</div>
+<div>Fri</div>
+<div>Sat</div>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+</div>
+
+<div class="summary">
+
+<div class="legend">
+<div class="legend-item"><span class="dot" style="background:#4caf50"></span>Office</div>
+<div class="legend-item"><span class="dot" style="background:#fff;border:1px solid #aaa"></span>WFH</div>
+<div class="legend-item"><span class="dot" style="background:#ffd54f"></span>Holiday</div>
+<div class="legend-item"><span class="dot" style="background:#e53935"></span>No Show</div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="progress-wrap">
+<div class="progress">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+<div class="progress-text" id="progressText"></div>
+</div>
+
+</div>
+
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<div class="sheet" id="sheet">
+
+<div class="sheet-title" id="sheetDate"></div>
+
+<button class="action office-btn" onclick="setStatus('office')">
+Work From Office
+</button>
+
+<button class="action home-btn" onclick="setStatus('home')">
+Work From Home
+</button>
+
+<button class="action holiday-btn" onclick="setStatus('holiday')">
+Holiday
+</button>
+
+<button class="action leave-btn" onclick="setStatus('leave')">
+Leave
+</button>
+
+<button class="action noshow-btn" onclick="setStatus('noShowOffice')">
+No Show + Office
+</button>
+
+<button class="action noshow-btn" onclick="setStatus('noShowHome')">
+No Show + Home
+</button>
+
+<button class="action reset-btn" onclick="setStatus('reset')">
+Reset
+</button>
+
+</div>
+
+<script>
+
+let currentDate=new Date();
+let selectedKey=null;
+
+function loadData(){
+return JSON.parse(localStorage.getItem('attendanceData')||'{}');
+}
+
+function saveData(data){
+localStorage.setItem('attendanceData',JSON.stringify(data));
+}
+
+const calendar=document.getElementById('calendar');
+
+function openSheet(key,label){
+selectedKey=key;
+document.getElementById('sheetDate').innerText=label;
+document.getElementById('sheet').classList.add('show');
+document.getElementById('backdrop').classList.add('show');
+}
+
+function closeSheet(){
+document.getElementById('sheet').classList.remove('show');
+document.getElementById('backdrop').classList.remove('show');
+}
+
+document.getElementById('backdrop').onclick=closeSheet;
+
+function setStatus(status){
+
+const data=loadData();
+
+if(status==="reset"){
+delete data[selectedKey];
+}else{
+data[selectedKey]=status;
+}
+
+saveData(data);
+closeSheet();
+render();
+}
+
+function render(){
+
+calendar.innerHTML='';
+
+const year=currentDate.getFullYear();
+const month=currentDate.getMonth();
+
+document.getElementById('monthTitle').innerText=
+currentDate.toLocaleString('default',{
+month:'long',
+year:'numeric'
+});
+
+const firstDay=new Date(year,month,1).getDay();
+const totalDays=new Date(year,month+1,0).getDate();
+
+for(let i=0;i<firstDay;i++){
+const div=document.createElement('div');
+div.className='day empty';
+calendar.appendChild(div);
+}
+
+const data=loadData();
+
+let workingDays=0;
+let officeDays=0;
+let wfhDays=0;
+let leaveDays=0;
+let holidayDays=0;
+let noShowDays=0;
+
+for(let day=1;day<=totalDays;day++){
+
+const cell=document.createElement('div');
+cell.className='day';
+
+const key=`${year}-${month+1}-${day}`;
+
+const dateObj=new Date(year,month,day);
+
+const dow=dateObj.getDay();
+
+const isWeekend=(dow===0 || dow===6);
+
+const today=new Date();
+
+if(
+today.getDate()===day &&
+today.getMonth()===month &&
+today.getFullYear()===year
+){
+cell.classList.add('today');
+}
+
+cell.innerText=day;
+
+let status=data[key];
+
+if(isWeekend){
+cell.classList.add('weekend');
+holidayDays++;
+}
+
+if(status){
+
+cell.classList.remove('weekend');
+
+switch(status){
+
+case 'office':
+cell.classList.add('office');
+officeDays++;
+workingDays++;
+break;
+
+case 'home':
+cell.classList.add('home');
+wfhDays++;
+workingDays++;
+break;
+
+case 'holiday':
+cell.classList.add('holiday');
+holidayDays++;
+break;
+
+case 'leave':
+cell.classList.add('leave');
+leaveDays++;
+break;
+
+case 'noShowHome':
+cell.classList.add('noShowHome');
+noShowDays++;
+wfhDays++;
+workingDays++;
+break;
+
+case 'noShowOffice':
+cell.classList.add('noShowOffice');
+noShowDays++;
+officeDays++;
+workingDays++;
+break;
+}
+}
+else{
+
+if(!isWeekend){
+wfhDays++;
+workingDays++;
+}
+}
+
+cell.onclick=()=>{
+openSheet(
+key,
+dateObj.toDateString()
+);
+};
+
+calendar.appendChild(cell);
+}
+
+const requiredOffice=Math.ceil(workingDays*0.5);
+
+const officePercent=
+workingDays===0
+?0
+:((officeDays/workingDays)*100).toFixed(1);
+
+const remaining=
+Math.max(
+requiredOffice-officeDays,
+0
+);
+
+document.getElementById('stats').innerHTML=`
+
+<div class="card">
+Working Days
+<b>${workingDays}</b>
+</div>
+
+<div class="card">
+Required Office
+<b>${requiredOffice}</b>
+</div>
+
+<div class="card">
+Office
+<b>${officeDays}</b>
+</div>
+
+<div class="card">
+WFH
+<b>${wfhDays}</b>
+</div>
+
+<div class="card">
+Leave
+<b>${leaveDays}</b>
+</div>
+
+<div class="card">
+No Show
+<b>${noShowDays}</b>
+</div>
+
+`;
+
+const progress=
+requiredOffice===0
+?0
+:Math.min(
+(officeDays/requiredOffice)*100,
+100
+);
+
+document.getElementById('progressBar').style.width=
+progress+'%';
+
+document.getElementById('progressText').innerHTML=
+`
+Office %: ${officePercent}%<br>
+Need ${remaining} more office day(s) to reach 50%
+`;
+}
+
+document.getElementById('prev').onclick=()=>{
+currentDate.setMonth(
+currentDate.getMonth()-1
+);
+render();
+};
+
+document.getElementById('next').onclick=()=>{
+currentDate.setMonth(
+currentDate.getMonth()+1
+);
+render();
+};
+
+render();
+
+</script>
+
+</body>
+</html>
