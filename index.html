@@ -32,11 +32,12 @@ font-family:system-ui,-apple-system,sans-serif;
 body{
 background:var(--bg);
 color:var(--text);
-overflow:hidden;
+min-height:100vh;
+overflow:auto;
 }
 
 .container{
-height:100vh;
+min-height:100vh;
 display:flex;
 flex-direction:column;
 }
@@ -90,7 +91,7 @@ align-items:center;
 }
 
 .icon-btn{
-background:rgba(255,255,255,0.18);
+background:transparent;
 border:none;
 color:white;
 width:44px;
@@ -278,11 +279,12 @@ font-size:12px;
 
 .stat-card{
 background:#f7f9fb;
-padding:8px;
+padding:8px 10px;
 border-radius:8px;
 text-align:center;
 border-left:4px solid var(--primary);
 transition:.2s ease;
+min-height:56px;
 }
 
 .stat-card:hover{
@@ -295,6 +297,13 @@ display:block;
 font-size:16px;
 margin-top:2px;
 color:var(--primary);
+}
+
+.stat-overview{
+font-size:14px;
+font-weight:700;
+margin-bottom:10px;
+color:var(--text);
 }
 
 /* BOTTOM SHEET */
@@ -644,10 +653,9 @@ width:400px;
 <!-- HEADER -->
 <div class="header">
 <div class="header-left">
-<div class="logo-badge">AT</div>
 <div>
 <div class="header-title" id="headerTitle">Attendance Tracker</div>
-<div class="header-subtitle">Modern office attendance with local-first sync</div>
+<div class="header-subtitle" id="headerSubtitle">Unknown User (Please login to save the data)</div>
 </div>
 </div>
 <div class="header-buttons">
@@ -681,6 +689,7 @@ width:400px;
 <div class="legend-item"><span class="dot" style="background:#e53935"></span>No Show</div>
 </div>
 
+<div class="stat-overview" id="statsOverview"></div>
 <div class="stats" id="stats"></div>
 
 </div>
@@ -904,7 +913,7 @@ let currentDate = new Date();
 let selectedKey = null;
 let confirmationResult = null;
 // Deployed Google Apps Script Web App URL (set from your deployment)
-let googleScriptURL = 'https://script.google.com/macros/s/AKfycbyHdXTO6WUcjt_I0Nr0h1VEy6OkOVGdjefnLXWVdJ7DCkbPmz0_EV5Z6D94MauVwG8QPQ/exec';
+let googleScriptURL = 'https://script.google.com/macros/s/AKfycbz460QY_kULbRnOx6Eeusdpu56L4dJW04h1I5X8CDa2i8eHOpLcRUSdjxMidwxdmLExpA/exec';
 let attendanceData = {};
 let userProfile = null;
 let saveCount = 0;
@@ -1685,6 +1694,12 @@ function hideApp() {
   attendanceData = {};
 }
 
+function isMonthAfterCurrentMonth(date) {
+  const today = new Date();
+  return date.getFullYear() > today.getFullYear() ||
+    (date.getFullYear() === today.getFullYear() && date.getMonth() > today.getMonth());
+}
+
 function openDrawer() {
   document.getElementById('drawer').classList.add('show');
   document.getElementById('drawerOverlay').classList.add('show');
@@ -1703,6 +1718,11 @@ document.getElementById('prev').onclick = () => {
 
 document.getElementById('next').onclick = () => {
   currentDate.setMonth(currentDate.getMonth() + 1);
+  if (isMonthAfterCurrentMonth(currentDate) && !currentUser) {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    showLoginSheet();
+    return;
+  }
   render();
 };
 

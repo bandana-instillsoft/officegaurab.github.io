@@ -66,12 +66,8 @@ function parsePayload(e) {
 }
 
 function createJsonResponse(response) {
-  const output = ContentService.createTextOutput(JSON.stringify(response));
-  output.setMimeType(ContentService.MimeType.JSON);
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  return output;
+  return ContentService.createTextOutput(JSON.stringify(response))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ===== ATTENDANCE FUNCTIONS =====
